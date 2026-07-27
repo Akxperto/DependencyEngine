@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dependency Engine — Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Dependency Engine</h1>
+            <p class="subtitle">Workflow State Machine Prototype</p>
+        </header>
+
+        <!-- Summary Bar -->
+        <div class="summary-bar" id="summary-bar">
+            <div class="summary-item">
+                <span class="summary-value" id="total-count">—</span>
+                <span class="summary-label">Total</span>
+            </div>
+            <div class="summary-item complete">
+                <span class="summary-value" id="complete-count">—</span>
+                <span class="summary-label">Done</span>
+            </div>
+            <div class="summary-item ready">
+                <span class="summary-value" id="ready-count">—</span>
+                <span class="summary-label">Ready</span>
+            </div>
+            <div class="summary-item blocked">
+                <span class="summary-value" id="blocked-count">—</span>
+                <span class="summary-label">Blocked</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-reset" onclick="resetWorkflow()">🔄 Reset All</button>
+            <button class="btn btn-refresh" onclick="loadWorkflow()">↻ Refresh</button>
+        </div>
+
+        <!-- Current Task Banner -->
+        <div class="current-task" id="current-task">
+            <h2>👆 Current Task</h2>
+            <div id="current-task-content">Loading...</div>
+        </div>
+
+        <!-- Error/Message Box -->
+        <div class="message-box hidden" id="message-box">
+            <span id="message-text"></span>
+            <button class="close-btn" onclick="hideMessage()">×</button>
+        </div>
+
+        <!-- Task List -->
+        <h2>All Tasks</h2>
+        <div id="task-list">Loading...</div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        async function loadWorkflow() {
+            try {
+                const [summaryRes, statusesRes] = await Promise.all([
+                    fetch(`${API_BASE}/workflow/summary`),
+                    fetch(`${API_BASE}/workflow`)
+                ]);
+                const summary = await summaryRes.json();
+                const statuses = await statusesRes.json();
+
+                // Update summary bar
+                document.getElementById('total-count').textContent = summary.total;
+                document.getElementById('complete-count').textContent = summary.complete;
+                document.getElementById('ready-count').textContent = summary.ready;
+                document.getElementById('blocked-count').textContent = summary.blocked;
+
+                // Update current task
+                const currentRes = await fetch(`${API_BASE}/current`);
+                const current = await currentRes.json();
+                renderCurrentTask(current);
+
+                // Render task list
+                renderTaskList(statuses);
+            } catch (err) {
+                showMessage('error', `Cannot connect to API. Is Flask running? (${err.message})`);
+            }
+        }
+
+        async function markComplete(taskId) {
+            const res = await fetch(`${API_BASE}/complete/${taskId}`, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'blocked') {
+                showMessage('error', `Blocked by: ${data.blocked_by.join(', ')}`);
+            } else if (data.status === 'already_complete') {
+                showMessage('warn', 'Task already marked as complete.');
+            } else if (data.status === 'complete') {
+                showMessage('success', `✅ Task '${taskId}' marked complete!`);
+                loadWorkflow();
+            }
+        }
+
+        async function resetWorkflow() {
+            if (!confirm('Reset all tasks to incomplete?')) return;
+            await fetch(`${API_BASE}/workflow/reset`, { method: 'POST' });
+            loadWorkflow();
+        }
+
+        function renderCurrentTask(task) {
+            const el = document.getElementById('current-task-content');
+            if (!task || task.id === undefined) {
+                el.innerHTML = '<em>No tasks ready. All done or blocked!</em>';
+                return;
+            }
+            const inputs = task.inputs?.length ? task.inputs.join(', ') : '—';
+            const outputs = task.outputs?.length ? task.outputs.join(', ') : '—';
+            el.innerHTML = `
+                <div class="current-info">
+                    <strong>${task.id}</strong> — ${task.name}
+                    <div class="task-io"><em>Inputs:</em> ${inputs}</div>
+                    <div class="task-io"><em>Outputs:</em> ${outputs}</div>
+                    <div class="task-io"><em>Description:</em> ${task.description || '—'}</div>
+                    <button class="btn btn-complete" onclick="markComplete('${task.id}')">
+                        ✅ Mark Complete
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderTaskList(tasks) {
+            const container = document.getElementById('task-list');
+            if (!tasks.length) {
+                container.innerHTML = '<em>No tasks found.</em>';
+                return;
+            }
+            container.innerHTML = tasks.map(t => {
+                const statusClass = t.isComplete ? 'done' : t.is_blocked ? 'blocked' : 'ready';
+                const statusLabel = t.isComplete ? '✅ Done' : t.is_blocked ? '🔒 Blocked' : '⏳ Ready';
+                const blockedBy = t.blocked_by?.length ? `Blocked by: ${t.blocked_by.join(', ')}` : '';
+                const producers = t.producers?.length ? `Producers: ${t.producers.join(', ')}` : '';
+                const btn = t.isComplete ? '' : t.is_blocked ? `<button class="btn btn-disabled" disabled>Mark Complete</button>` : `<button class="btn btn-complete" onclick="markComplete('${t.id}')">✅ Mark Complete</button>`;
+                return `
+                    <div class="task-card ${statusClass}">
+                        <div class="task-header">
+                            <strong>${t.id}</strong>
+                            <span class="status-badge ${statusClass}">${statusLabel}</span>
+                        </div>
+                        <div class="task-meta">${producers}</div>
+                        <div class="task-meta error-text">${blockedBy}</div>
+                        <div class="task-actions">${btn}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showMessage(type, text) {
+            const box = document.getElementById('message-box');
+            const txt = document.getElementById('message-text');
+            box.className = `message-box show ${type}`;
+            txt.textContent = text;
+        }
+
+        function hideMessage() {
+            document.getElementById('message-box').className = 'message-box hidden';
+        }
+
+        loadWorkflow();
+        setInterval(loadWorkflow, 5000);  // auto-refresh every 5s
+    </script>
+</body>
+</html>

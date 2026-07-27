@@ -3,169 +3,650 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dependency Engine — Prototype</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Dependency Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 1.5rem;
+            border-bottom: 1px solid #1e293b;
+            flex-shrink: 0;
+        }
+        .header-left h1 { font-size: 1.15rem; color: #f8fafc; letter-spacing: -0.01em; }
+        .header-left .sub { font-size: 0.7rem; color: #475569; margin-top: 1px; }
+
+        .stats { display: flex; gap: 0.5rem; }
+        .stat {
+            padding: 0.25rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            background: #1e293b;
+            border: 1px solid transparent;
+        }
+        .stat.total   { color: #94a3b8; border-color: #33415544; }
+        .stat.done    { color: #4ade80; border-color: #22c55e33; }
+        .stat.ready   { color: #60a5fa; border-color: #3b82f633; }
+        .stat.blocked { color: #f87171; border-color: #ef444433; }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1.5rem;
+            border-bottom: 1px solid #1e293b;
+            flex-shrink: 0;
+            background: #0d1117;
+        }
+        .btn {
+            padding: 0.28rem 0.65rem;
+            border: 1px solid #1e293b;
+            border-radius: 5px;
+            background: #161d2a;
+            color: #64748b;
+            font-size: 0.76rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.12s, color 0.12s, border-color 0.12s;
+            line-height: 1.4;
+        }
+        .btn:hover { background: #1e293b; color: #cbd5e1; border-color: #334155; }
+        .btn.danger { color: #f87171; border-color: #7f1d1d33; }
+        .btn.danger:hover { background: #2d0e0e; border-color: #7f1d1d88; }
+
+        .sep { width: 1px; height: 14px; background: #1e293b; margin: 0 0.2rem; flex-shrink: 0; }
+
+        .legend {
+            display: flex;
+            gap: 0.9rem;
+            margin-left: auto;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.68rem;
+            color: #475569;
+        }
+        .ldot {
+            width: 9px; height: 9px;
+            border-radius: 2px;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+
+        /* ── Graph ── */
+        #cy {
+            flex: 1;
+            min-height: 0;
+            background: #0d1117;
+            cursor: default;
+        }
+
+        /* ── Detail panel ── */
+        .detail-panel {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            padding: 0.85rem 1.5rem;
+            border-top: 1px solid #1e293b;
+            background: #0f1117;
+            min-height: 78px;
+        }
+        .detail-empty {
+            color: #2d3f55;
+            font-size: 0.82rem;
+            font-style: italic;
+        }
+        .detail-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            flex: 1;
+            min-width: 0;
+        }
+        .detail-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .detail-id {
+            font-family: 'Consolas', 'Menlo', monospace;
+            font-size: 0.7rem;
+            color: #334155;
+        }
+        .detail-io {
+            font-size: 0.76rem;
+            color: #475569;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .detail-io .lbl { color: #334155; }
+        .detail-io .val { color: #64748b; }
+        .detail-io .err { color: #dc2626; }
+        .detail-desc {
+            font-size: 0.75rem;
+            color: #334155;
+            margin-top: 0.1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .detail-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.18rem 0.55rem;
+            border-radius: 99px;
+        }
+        .badge.done    { background: #14532d; color: #4ade80; }
+        .badge.ready   { background: #172554; color: #60a5fa; }
+        .badge.blocked { background: #450a0a; color: #f87171; }
+
+        .btn-complete {
+            padding: 0.38rem 1rem;
+            background: #166534;
+            color: #dcfce7;
+            border: 1px solid #15803d55;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: filter 0.12s;
+            white-space: nowrap;
+        }
+        .btn-complete:hover:not(:disabled) { filter: brightness(1.2); }
+        .btn-complete:disabled {
+            background: #1a2030;
+            color: #2d3f55;
+            border-color: transparent;
+            cursor: not-allowed;
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            z-index: 1000;
+            box-shadow: 0 4px 24px #00000066;
+            animation: fadeUp 0.18s ease;
+            white-space: nowrap;
+        }
+        .toast.hidden  { display: none; }
+        .toast.success { background: #14532d; color: #86efac; }
+        .toast.error   { background: #7f1d1d; color: #fca5a5; }
+        .toast.warn    { background: #78350f; color: #fcd34d; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+        }
+        .toast-close { cursor: pointer; opacity: 0.65; font-size: 1rem; padding: 0 0.2rem; }
+        .toast-close:hover { opacity: 1; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>⚡ Dependency Engine</h1>
-            <p class="subtitle">Workflow State Machine Prototype</p>
-        </header>
 
-        <!-- Summary Bar -->
-        <div class="summary-bar" id="summary-bar">
-            <div class="summary-item">
-                <span class="summary-value" id="total-count">—</span>
-                <span class="summary-label">Total</span>
-            </div>
-            <div class="summary-item complete">
-                <span class="summary-value" id="complete-count">—</span>
-                <span class="summary-label">Done</span>
-            </div>
-            <div class="summary-item ready">
-                <span class="summary-value" id="ready-count">—</span>
-                <span class="summary-label">Ready</span>
-            </div>
-            <div class="summary-item blocked">
-                <span class="summary-value" id="blocked-count">—</span>
-                <span class="summary-label">Blocked</span>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="actions">
-            <button class="btn btn-reset" onclick="resetWorkflow()">🔄 Reset All</button>
-            <button class="btn btn-refresh" onclick="loadWorkflow()">↻ Refresh</button>
-        </div>
-
-        <!-- Current Task Banner -->
-        <div class="current-task" id="current-task">
-            <h2>👆 Current Task</h2>
-            <div id="current-task-content">Loading...</div>
-        </div>
-
-        <!-- Error/Message Box -->
-        <div class="message-box hidden" id="message-box">
-            <span id="message-text"></span>
-            <button class="close-btn" onclick="hideMessage()">×</button>
-        </div>
-
-        <!-- Task List -->
-        <h2>All Tasks</h2>
-        <div id="task-list">Loading...</div>
+<!-- ── Header ── -->
+<div class="header">
+    <div class="header-left">
+        <h1>&#9889; Dependency Engine</h1>
+        <div class="sub">Workflow State Machine : Graph View</div>
     </div>
+    <div class="stats">
+        <div class="stat total"   id="s-total">&#8212;</div>
+        <div class="stat done"    id="s-done">&#8212;</div>
+        <div class="stat ready"   id="s-ready">&#8212;</div>
+        <div class="stat blocked" id="s-blocked">&#8212;</div>
+    </div>
+</div>
 
-    <script>
-        const API_BASE = 'http://localhost:5000/api';
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+    <button class="btn danger" onclick="resetAll()">&#8635; Reset</button>
+    <button class="btn"        onclick="loadAll()">&#8635; Refresh</button>
+    <div class="sep"></div>
+    <button class="btn" onclick="fitGraph()"  title="Fit to view">&#8861; Fit</button>
+    <button class="btn" onclick="zoom(1.25)"  title="Zoom in">+</button>
+    <button class="btn" onclick="zoom(0.8)"   title="Zoom out">&minus;</button>
+    <div class="legend">
+        <div class="legend-item"><div class="ldot" style="border-color:#22c55e;background:#0a2018"></div>Done</div>
+        <div class="legend-item"><div class="ldot" style="border-color:#3b82f6;background:#0c1c38"></div>Ready</div>
+        <div class="legend-item"><div class="ldot" style="border-color:#1f2937;background:#111827"></div>Blocked</div>
+    </div>
+</div>
 
-        async function loadWorkflow() {
-            try {
-                const [summaryRes, statusesRes] = await Promise.all([
-                    fetch(`${API_BASE}/workflow/summary`),
-                    fetch(`${API_BASE}/workflow`)
-                ]);
-                const summary = await summaryRes.json();
-                const statuses = await statusesRes.json();
+<!-- ── Graph ── -->
+<div id="cy"></div>
 
-                // Update summary bar
-                document.getElementById('total-count').textContent = summary.total;
-                document.getElementById('complete-count').textContent = summary.complete;
-                document.getElementById('ready-count').textContent = summary.ready;
-                document.getElementById('blocked-count').textContent = summary.blocked;
+<!-- ── Detail panel ── -->
+<div class="detail-panel" id="detail-panel">
+    <div class="detail-empty">Click any node to inspect it</div>
+</div>
 
-                // Update current task
-                const currentRes = await fetch(`${API_BASE}/current`);
-                const current = await currentRes.json();
-                renderCurrentTask(current);
+<!-- ── Toast ── -->
+<div class="toast hidden" id="toast">
+    <span id="toast-text"></span>
+    <span class="toast-close" onclick="hideToast()">&#215;</span>
+</div>
 
-                // Render task list
-                renderTaskList(statuses);
-            } catch (err) {
-                showMessage('error', `Cannot connect to API. Is Flask running? (${err.message})`);
+<script>
+    const API       = '/api';
+    let cy          = null;
+    let tasks       = {};
+    let selectedId  = null;
+    let toastTimer  = null;
+
+    // ─── Boot ─────────────────────────────────────────────────────────────────
+    async function boot() {
+        if (typeof cytoscape === 'undefined') {
+            document.getElementById('cy').innerHTML =
+                '<p style="color:#f87171;padding:2rem;font-size:.9rem">Cytoscape.js failed to load. Check your internet connection and reload.</p>';
+            return;
+        }
+        await loadAll();
+        setInterval(softRefresh, 5000);
+    }
+
+    // ─── Full load (first load, manual refresh, after reset) ──────────────────
+    async function loadAll() {
+        try {
+            const [sumR, taskR, curR] = await Promise.all([
+                fetch(API + '/summary'),
+                fetch(API + '/tasks'),
+                fetch(API + '/current')
+            ]);
+            const summary = await sumR.json();
+            const taskData = await taskR.json();
+            const curData = await curR.json();
+            const list = taskData.tasks;
+            const cur  = curData.task;
+
+            updateStats(summary);
+            tasks = {};
+            list.forEach(function(t) { tasks[t.id] = t; });
+
+            buildGraph(list, cur ? cur.id : null);
+
+            if (cur && !selectedId) {
+                selectNode(cur.id, false);
+            } else if (selectedId && tasks[selectedId]) {
+                renderDetail(tasks[selectedId]);
             }
+        } catch (e) {
+            showToast('error', 'API unreachable — is Flask running? (' + e.message + ')');
+        }
+    }
+
+    // ─── Soft refresh: update node styles in-place, no rebuild ────────────────
+    async function softRefresh() {
+        try {
+            const [sumR, taskR, curR] = await Promise.all([
+                fetch(API + '/summary'),
+                fetch(API + '/tasks'),
+                fetch(API + '/current')
+            ]);
+            const summary  = await sumR.json();
+            const taskData = await taskR.json();
+            const curData  = await curR.json();
+            const list     = taskData.tasks;
+            const cur      = curData.task;
+
+            updateStats(summary);
+            tasks = {};
+            list.forEach(function(t) { tasks[t.id] = t; });
+
+            if (!cy) return;
+
+            list.forEach(function(t) {
+                var node = cy.getElementById(t.id);
+                if (!node.length) return;
+
+                node.data('isComplete', t.isComplete);
+                node.data('isBlocked',  t.is_blocked);
+                node.data('blockedBy',  t.blocked_by);
+
+                node.removeClass('done ready blocked current');
+                node.addClass(nodeClass(t));
+                if (cur && t.id === cur.id) node.addClass('current');
+
+                node.outgoers('edge').removeClass('edge-done edge-pending');
+                node.outgoers('edge').addClass(t.isComplete ? 'edge-done' : 'edge-pending');
+            });
+
+            if (selectedId && tasks[selectedId]) renderDetail(tasks[selectedId]);
+        } catch (_) { /* silent */ }
+    }
+
+    // ─── Build / rebuild Cytoscape instance ───────────────────────────────────
+    function buildGraph(list, currentId) {
+        var prevZoom = cy ? cy.zoom() : null;
+        var prevPan  = cy ? cy.pan()  : null;
+        var isFirst  = !cy;
+
+        if (cy) cy.destroy();
+
+        var elements = [];
+
+        list.forEach(function(t) {
+            elements.push({
+                group: 'nodes',
+                data: {
+                    id:         t.id,
+                    label:      t.name,
+                    isComplete: t.isComplete,
+                    isBlocked:  t.is_blocked,
+                    blockedBy:  t.blocked_by,
+                    producers:  t.producers
+                },
+                classes: nodeClass(t) + (t.id === currentId ? ' current' : '')
+            });
+        });
+
+        list.forEach(function(t) {
+            (t.producers || []).forEach(function(src) {
+                var srcTask = tasks[src];
+                elements.push({
+                    group: 'edges',
+                    data: { id: src + '__' + t.id, source: src, target: t.id },
+                    classes: (srcTask && srcTask.isComplete) ? 'edge-done' : 'edge-pending'
+                });
+            });
+        });
+
+        cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements:  elements,
+            style:     graphStyle(),
+            layout: {
+                name:    'dagre',
+                rankDir: 'LR',
+                nodeSep: 55,
+                rankSep: 120,
+                edgeSep: 15,
+                padding: 50,
+                animate: false,
+                fit:     isFirst
+            },
+            minZoom: 0.15,
+            maxZoom: 3
+        });
+
+        if (!isFirst && prevZoom) {
+            cy.zoom(prevZoom);
+            cy.pan(prevPan);
         }
 
-        async function markComplete(taskId) {
-            const res = await fetch(`${API_BASE}/complete/${taskId}`, { method: 'POST' });
-            const data = await res.json();
+        // ── Events ────────────────────────────────────────────────────────────
+        cy.on('tap', 'node', function(evt) {
+            var node = evt.target;
+            cy.elements().removeClass('faded');
+            cy.elements().not(node.closedNeighborhood()).addClass('faded');
+            selectNode(node.id(), true);
+        });
 
-            if (data.status === 'blocked') {
-                showMessage('error', `Blocked by: ${data.blocked_by.join(', ')}`);
-            } else if (data.status === 'already_complete') {
-                showMessage('warn', 'Task already marked as complete.');
-            } else if (data.status === 'complete') {
-                showMessage('success', `✅ Task '${taskId}' marked complete!`);
-                loadWorkflow();
+        cy.on('tap', function(evt) {
+            if (evt.target !== cy) return;
+            cy.elements().removeClass('faded selected');
+            selectedId = null;
+            renderDetail(null);
+        });
+
+        cy.on('mouseover', 'node', function(evt) { evt.target.addClass('hovered'); });
+        cy.on('mouseout',  'node', function(evt) { evt.target.removeClass('hovered'); });
+    }
+
+    // ─── Cytoscape stylesheet ─────────────────────────────────────────────────
+    function graphStyle() {
+        return [
+            {
+                selector: 'node',
+                style: {
+                    'shape':              'roundrectangle',
+                    'width':              155,
+                    'height':             48,
+                    'background-color':   '#151d2b',
+                    'border-width':       1.5,
+                    'border-color':       '#1e293b',
+                    'color':              '#334155',
+                    'label':              'data(label)',
+                    'text-valign':        'center',
+                    'text-halign':        'center',
+                    'font-family':        'Segoe UI, system-ui, sans-serif',
+                    'font-size':          11,
+                    'font-weight':        500,
+                    'text-wrap':          'wrap',
+                    'text-max-width':     135,
+                    'cursor':             'pointer',
+                    'transition-property':'border-color, background-color, opacity',
+                    'transition-duration':'0.2s'
+                }
+            },
+            {
+                selector: 'node.done',
+                style: {
+                    'background-color': '#091a10',
+                    'border-color':     '#22c55e',
+                    'border-width':     2,
+                    'color':            '#4ade80'
+                }
+            },
+            {
+                selector: 'node.ready',
+                style: {
+                    'background-color': '#0b1930',
+                    'border-color':     '#3b82f6',
+                    'border-width':     2,
+                    'color':            '#60a5fa'
+                }
+            },
+            {
+                selector: 'node.blocked',
+                style: {
+                    'background-color': '#0e1117',
+                    'border-color':     '#1e293b',
+                    'color':            '#2d3f55'
+                }
+            },
+            {
+                selector: 'node.current',
+                style: {
+                    'border-color':    '#60a5fa',
+                    'border-width':    2.5,
+                    'shadow-blur':     18,
+                    'shadow-color':    '#3b82f6',
+                    'shadow-opacity':  0.55,
+                    'shadow-offset-x': 0,
+                    'shadow-offset-y': 0
+                }
+            },
+            {
+                selector: 'node.hovered',
+                style: {
+                    'border-width': 2.5,
+                    'z-index':      10
+                }
+            },
+            {
+                selector: 'node.faded',
+                style: { 'opacity': 0.12 }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width':                1.5,
+                    'line-color':           '#1a2234',
+                    'target-arrow-color':   '#1a2234',
+                    'target-arrow-shape':   'triangle',
+                    'curve-style':          'bezier',
+                    'arrow-scale':          0.85,
+                    'opacity':              0.9,
+                    'transition-property':  'line-color, opacity',
+                    'transition-duration':  '0.2s'
+                }
+            },
+            {
+                selector: 'edge.edge-done',
+                style: {
+                    'line-color':         '#166534',
+                    'target-arrow-color': '#166534',
+                    'opacity':            0.55
+                }
+            },
+            {
+                selector: 'edge.faded',
+                style: { 'opacity': 0.04 }
             }
+        ];
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    function nodeClass(t) {
+        if (t.isComplete)  return 'done';
+        if (t.is_blocked)  return 'blocked';
+        return 'ready';
+    }
+
+    function selectNode(id, animate) {
+        selectedId = id;
+        var task = tasks[id];
+        if (!task) return;
+        renderDetail(task);
+
+        if (!cy) return;
+        var node = cy.getElementById(id);
+        if (!node.length) return;
+        cy.elements().removeClass('selected');
+        node.addClass('selected');
+
+        if (animate) {
+            cy.animate({
+                center: { eles: node },
+                zoom:   Math.max(cy.zoom(), 0.75)
+            }, { duration: 280 });
+        }
+    }
+
+    function renderDetail(task) {
+        var panel = document.getElementById('detail-panel');
+        if (!task) {
+            panel.innerHTML = '<div class="detail-empty">Click any node to inspect it</div>';
+            return;
         }
 
-        async function resetWorkflow() {
-            if (!confirm('Reset all tasks to incomplete?')) return;
-            await fetch(`${API_BASE}/workflow/reset`, { method: 'POST' });
-            loadWorkflow();
-        }
+        var status  = task.isComplete ? 'done' : task.is_blocked ? 'blocked' : 'ready';
+        var badgeTx = task.isComplete ? '&#10003; Done' : task.is_blocked ? '&#128274; Blocked' : '&#8987; Ready';
+        var needs   = (task.input  && task.input.length)   ? task.input.join(', ')   : '&#8212;';
+        var makes   = (task.output && task.output.length)  ? task.output.join(', ')  : '&#8212;';
+        var blockedHtml = (task.blocked_by && task.blocked_by.length)
+            ? ' &nbsp;&middot;&nbsp; <span class="err">Blocked by: ' + task.blocked_by.join(', ') + '</span>'
+            : '';
+        var canComplete = !task.isComplete && !task.is_blocked;
 
-        function renderCurrentTask(task) {
-            const el = document.getElementById('current-task-content');
-            if (!task || task.id === undefined) {
-                el.innerHTML = '<em>No tasks ready. All done or blocked!</em>';
-                return;
-            }
-            const inputs = task.inputs?.length ? task.inputs.join(', ') : '—';
-            const outputs = task.outputs?.length ? task.outputs.join(', ') : '—';
-            el.innerHTML = `
-                <div class="current-info">
-                    <strong>${task.id}</strong> — ${task.name}
-                    <div class="task-io"><em>Inputs:</em> ${inputs}</div>
-                    <div class="task-io"><em>Outputs:</em> ${outputs}</div>
-                    <div class="task-io"><em>Description:</em> ${task.description || '—'}</div>
-                    <button class="btn btn-complete" onclick="markComplete('${task.id}')">
-                        ✅ Mark Complete
-                    </button>
-                </div>
-            `;
-        }
+        panel.innerHTML =
+            '<div class="detail-body">' +
+                '<div class="detail-name">' + task.name + '</div>' +
+                '<div class="detail-id">' + task.id + '</div>' +
+                '<div class="detail-io">' +
+                    '<span class="lbl">Needs:</span> <span class="val">' + needs + '</span>' +
+                    ' &nbsp;&middot;&nbsp; ' +
+                    '<span class="lbl">Produces:</span> <span class="val">' + makes + '</span>' +
+                    blockedHtml +
+                '</div>' +
+                '<div class="detail-desc">' + (task.description || '') + '</div>' +
+            '</div>' +
+            '<div class="detail-right">' +
+                '<div class="badge ' + status + '">' + badgeTx + '</div>' +
+                '<button class="btn-complete" onclick="markComplete(\'' + task.id + '\')" ' +
+                    (canComplete ? '' : 'disabled') + '>&#10003; Mark Complete</button>' +
+            '</div>';
+    }
 
-        function renderTaskList(tasks) {
-            const container = document.getElementById('task-list');
-            if (!tasks.length) {
-                container.innerHTML = '<em>No tasks found.</em>';
-                return;
-            }
-            container.innerHTML = tasks.map(t => {
-                const statusClass = t.isComplete ? 'done' : t.is_blocked ? 'blocked' : 'ready';
-                const statusLabel = t.isComplete ? '✅ Done' : t.is_blocked ? '🔒 Blocked' : '⏳ Ready';
-                const blockedBy = t.blocked_by?.length ? `Blocked by: ${t.blocked_by.join(', ')}` : '';
-                const producers = t.producers?.length ? `Producers: ${t.producers.join(', ')}` : '';
-                const btn = t.isComplete ? '' : t.is_blocked ? `<button class="btn btn-disabled" disabled>Mark Complete</button>` : `<button class="btn btn-complete" onclick="markComplete('${t.id}')">✅ Mark Complete</button>`;
-                return `
-                    <div class="task-card ${statusClass}">
-                        <div class="task-header">
-                            <strong>${t.id}</strong>
-                            <span class="status-badge ${statusClass}">${statusLabel}</span>
-                        </div>
-                        <div class="task-meta">${producers}</div>
-                        <div class="task-meta error-text">${blockedBy}</div>
-                        <div class="task-actions">${btn}</div>
-                    </div>
-                `;
-            }).join('');
+    // ─── API actions ──────────────────────────────────────────────────────────
+    async function markComplete(id) {
+        var res  = await fetch(API + '/tasks/' + id + '/complete', { method: 'POST' });
+        var data = await res.json();
+        if (data.status === 'blocked') {
+            showToast('error', 'Blocked by: ' + data.blocked_by.join(', '));
+        } else if (data.status === 'already_complete') {
+            showToast('warn', 'Already marked complete.');
+        } else if (data.status === 'complete') {
+            showToast('success', id + ' marked complete');
+            await softRefresh();
         }
+    }
 
-        function showMessage(type, text) {
-            const box = document.getElementById('message-box');
-            const txt = document.getElementById('message-text');
-            box.className = `message-box show ${type}`;
-            txt.textContent = text;
-        }
+    async function resetAll() {
+        if (!confirm('Reset all tasks to incomplete?')) return;
+        await fetch(API + '/reset', { method: 'POST' });
+        selectedId = null;
+        await loadAll();
+        showToast('warn', 'All tasks reset.');
+    }
 
-        function hideMessage() {
-            document.getElementById('message-box').className = 'message-box hidden';
-        }
+    function fitGraph() { if (cy) cy.fit(null, 50); }
+    function zoom(f) {
+        if (!cy) return;
+        cy.zoom({ level: cy.zoom() * f, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+    }
 
-        loadWorkflow();
-        setInterval(loadWorkflow, 5000);  // auto-refresh every 5s
-    </script>
+    function updateStats(s) {
+        document.getElementById('s-total').textContent   = s.total   + ' Total';
+        document.getElementById('s-done').textContent    = s.complete + ' Done';
+        document.getElementById('s-ready').textContent   = s.ready   + ' Ready';
+        document.getElementById('s-blocked').textContent = s.blocked + ' Blocked';
+    }
+
+    function showToast(type, text) {
+        var el = document.getElementById('toast');
+        document.getElementById('toast-text').textContent = text;
+        el.className = 'toast ' + type;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 4500);
+    }
+    function hideToast() {
+        document.getElementById('toast').className = 'toast hidden';
+    }
+
+    boot();
+</script>
 </body>
 </html>

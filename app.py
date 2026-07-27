@@ -20,12 +20,12 @@ def index():
 
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
-    tasks = list(store.tasks.values())
+    tasks = [store.annotate_task(tid) for tid in store.tasks]
     return jsonify({'tasks': tasks})
 
 @app.route('/api/tasks/<task_id>', methods=['GET'])
 def get_task(task_id):
-    task = store.get_task(task_id)
+    task = store.annotate_task(task_id)
     if not task:
         return jsonify({'error': f'Task {task_id} not found'}), 404
     return jsonify(task)
@@ -67,8 +67,13 @@ def mark_complete(task_id):
     task = store.get_task(task_id)
     if not task:
         return jsonify({'error': f'Task {task_id} not found'}), 404
+    if task.get('isComplete'):
+        return jsonify({'status': 'already_complete', 'completed': task_id})
+    ok, unmet = store.can_complete(task_id)
+    if not ok:
+        return jsonify({'status': 'blocked', 'blocked_by': unmet}), 409
     store.complete(task_id)
-    return jsonify({'completed': task_id})
+    return jsonify({'status': 'complete', 'completed': task_id})
 
 @app.route('/api/tasks/<task_id>/uncomplete', methods=['POST'])
 def mark_uncomplete(task_id):
@@ -108,7 +113,8 @@ def toposort():
 @app.route('/api/current', methods=['GET'])
 def current():
     cid = store.current_task()
-    return jsonify({'current': cid})
+    task = store.annotate_task(cid) if cid else None
+    return jsonify({'current': cid, 'task': task})
 
 if __name__ == '__main__':
     logger.info("Starting Workflow Engine API on http://localhost:5000")

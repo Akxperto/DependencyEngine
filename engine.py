@@ -15,7 +15,8 @@ class WorkflowStore:
     def __init__(self, path: str = "workflow.json"):
         self.path = pathlib.Path(path)
         self.tasks: dict[str, dict] = {}
-        self._output_index: dict[str, list[str]] = defaultdict(list)  # output_name → [task_ids]
+        self._output_index: dict[str, list[str]] = defaultdict(list)  # output_name → [producer task_ids]
+        self._input_index: dict[str, list[str]] = defaultdict(list)   # output_name → [consumer task_ids]
         self._load()
         self.build_edges()
         self.save()
@@ -91,14 +92,39 @@ class WorkflowStore:
                     blockers.append(source_id)
         return blockers
 
+    def annotate_task(self, task_id: str) -> dict | None:
+        """Return a task enriched with computed dependency/status fields
+        (producers, blocked_by, is_blocked) for consumption by the UI."""
+        task = self.tasks.get(task_id)
+        if not task:
+            return None
+        producers = self.get_task_dependencies(task_id)
+        blocked_by = [p for p in producers if not self.tasks[p].get('isComplete', False)]
+        is_blocked = bool(blocked_by) and not task.get('isComplete', False)
+        return {
+            **task,
+            'producers': producers,
+            'blocked_by': blocked_by,
+            'is_blocked': is_blocked,
+        }
+
+    def can_complete(self, task_id: str) -> tuple[bool, list[str]]:
+        """Whether a task's blockers are all satisfied. Returns (ok, unmet_blocker_ids)."""
+        blockers = self.get_task_dependencies(task_id)
+        unmet = [b for b in blockers if not self.tasks[b].get('isComplete', False)]
+        return (len(unmet) == 0, unmet)
+
     # ─── Graph ─────────────────────────────────────────────────────────────────
 
     def build_edges(self) -> None:
-        """Rebuild the output → task index."""
+        """Rebuild the output → task indices (producers and consumers)."""
         self._output_index.clear()
+        self._input_index.clear()
         for task_id, task in self.tasks.items():
             for out in task.get('output', []):
                 self._output_index[out].append(task_id)
+            for inp in task.get('input', []):
+                self._input_index[inp].append(task_id)
 
     # ─── Validation ────────────────────────────────────────────────────────────
 
@@ -145,11 +171,11 @@ class WorkflowStore:
             result.append(task_id)
             task = self.tasks[task_id]
             for out in task.get('output', []):
-                for dependent_id in self._output_index.get(out, []):
-                    if dependent_id != task_id:
-                        in_degree[dependent_id] -= 1
-                        if in_degree[dependent_id] == 0:
-                            queue.append(dependent_id)
+                for consumer_id in self._input_index.get(out, []):
+                    if consumer_id != task_id:
+                        in_degree[consumer_id] -= 1
+                        if in_degree[consumer_id] == 0:
+                            queue.append(consumer_id)
 
         if len(result) != len(all_task_ids):
             logger.warning("Cycle detected — topological sort is partial")

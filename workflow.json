@@ -1,0 +1,140 @@
+{
+  "tasks": [
+    {
+      "id": "prepare_ingredients",
+      "name": "Prepare Ingredients",
+      "description": "Gather and prep all ingredients for the Beef Wellington",
+      "input": [],
+      "output": ["prepped_ingredients" ],
+      "isComplete": false
+    },
+    {
+      "id": "make_duxelles",
+      "name": "Make Duxelles",
+      "description": "Finely chop mushrooms and shallots, cook down to remove moisture",
+      "input": ["prepped_ingredients"],
+      "output": ["duxelles"],
+      "isComplete": false
+    },
+    {
+      "id": "sear_beef",
+      "name": "Sear Beef",
+      "description": "Season and sear the beef tenderloin on all sides for a golden crust",
+      "input": ["prepped_ingredients"],
+      "output": ["seared_beef"],
+      "isComplete": false
+    },
+    {
+      "id": "smear_dijon",
+      "name": "Smear Dijon Mustard",
+      "description": "Coat the seared beef evenly with Dijon mustard",
+      "input": ["seared_beef"],
+      "output": ["mustard_beef"],
+      "isComplete": false
+    },
+    {
+      "id": "wrap_prosciutto",
+      "name": "Wrap with Prosciutto",
+      "description": "Layer prosciutto slices over the beef to create a sealing layer",
+      "input": ["mustard_beef"],
+      "output": ["prosciutto_beef"],
+      "isComplete": false
+    },
+    {
+      "id": "roll_dough",
+      "name": "Roll Out Puff Pastry",
+      "description": "Roll out the puff pastry dough to a flat sheet large enough to encase the beef",
+      "input": [],
+      "output": ["pastry_sheet"],
+      "isComplete": false
+    },
+    {
+      "id": "make_crepe",
+      "name": "Make Crepes",
+      "description": "Mix batter and cook thin crepes to act as a moisture barrier",
+      "input": [],
+      "output": ["crepes"],
+      "isComplete": false
+    },
+    {
+      "id": "crepe_make",
+      "name": "Assemble Crepe Layers",
+      "description": "Layer crepes around the beef for extra protection",
+      "input": ["crepe_batter"],
+      "output": ["crepe_layers"],
+      "isComplete": false
+    },
+    {
+      "id": "wrap_crepes",
+      "name": "Wrap with Crepes",
+      "description": "Wrap the beef in crepe layers",
+      "input": ["prosciutto_beef", "crepes"],
+      "output": ["crepe_wrapped_beef"],
+      "isComplete": false
+    },
+    {
+      "id": "wrap_pastry",
+      "name": "Wrap in Puff Pastry",
+      "description": "Encase the crepe-wrapped beef in puff pastry, seal edges",
+      "input": ["crepe_wrapped_beef", "pastry_sheet"],
+      "output": ["raw_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "glaze_egg",
+      "name": "Glaze with Egg Wash",
+      "description": "Brush the pastry with egg wash for a golden finish",
+      "input": ["raw_wellington"],
+      "output": ["egg_washed_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "score_pastry",
+      "name": "Score Pastry",
+      "description": "Cut decorative lines into the pastry before baking",
+      "input": ["egg_washed_wellington"],
+      "output": ["scored_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "bake_wellington",
+      "name": "Bake Wellington",
+      "description": "Bake in a hot oven until pastry is golden and beef is cooked to desired temp",
+      "input": ["scored_wellington"],
+      "output": ["baked_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "rest_wellington",
+      "name": "Rest Wellington",
+      "description": "Let the baked Wellington rest before slicing",
+      "input": ["baked_wellington"],
+      "output": ["rested_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "slice_wellington",
+      "name": "Slice Wellington",
+      "description": "Cut into uniform slices to serve",
+      "input": ["rested_wellington"],
+      "output": ["sliced_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "plate_wellington",
+      "name": "Plate Wellington",
+      "description": "Arrange slices on a platter with garnishes",
+      "input": ["sliced_wellington"],
+      "output": ["plated_wellington"],
+      "isComplete": false
+    },
+    {
+      "id": "prepare_sides",
+      "name": "Prepare Sides",
+      "description": "Cook and season any side dishes to accompany the Wellington",
+      "input": ["prepped_ingredients"],
+      "output": ["sides"],
+      "isComplete": false
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "tasks": {
-    "framing": {
+  "tasks": [
+    {
       "id": "framing",
       "name": "Framing",
       "description": "Erect the structural wood or steel frame of the building, including walls, floor joists, and roof trusses, up to a point where trades can begin rough-in work",
@@ -10,7 +10,7 @@
       ],
       "isComplete": true
     },
-    "electrical_roughin": {
+    {
       "id": "electrical_roughin",
       "name": "Electrical Rough-in",
       "description": "Run wiring through the framed walls and ceilings, install electrical boxes, and set up circuit runs before walls are closed up",
@@ -20,9 +20,9 @@
       "output": [
         "electrical_rough"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "panel_install": {
+    {
       "id": "panel_install",
       "name": "Panel Install",
       "description": "Mount and wire the main electrical breaker panel, connecting it to the rough-in circuits run throughout the structure",
@@ -32,9 +32,9 @@
       "output": [
         "electrical_panel"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "electrical_test": {
+    {
       "id": "electrical_test",
       "name": "Electrical Test",
       "description": "Test all wiring circuits and the breaker panel for continuity, correct voltage, and code compliance before the branch is considered complete",
@@ -44,9 +44,9 @@
       "output": [
         "electrical_tested"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "plumbing_roughin": {
+    {
       "id": "plumbing_roughin",
       "name": "Plumbing Rough-in",
       "description": "Install supply lines and drain, waste, and vent piping through the framed structure before walls and floors are closed",
@@ -56,9 +56,9 @@
       "output": [
         "plumbing_rough"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "pressure_test": {
+    {
       "id": "pressure_test",
       "name": "Pressure Test",
       "description": "Pressurize the newly installed supply and drain lines to check for leaks and verify the plumbing system holds pressure to spec",
@@ -68,9 +68,9 @@
       "output": [
         "plumbing_pressure_tested"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "fixture_roughin": {
+    {
       "id": "fixture_roughin",
       "name": "Fixture Rough-in",
       "description": "Install the rough-in components for sinks, tubs, toilets, and other fixtures so finish plumbing can be connected later",
@@ -80,9 +80,9 @@
       "output": [
         "plumbing_fixtures_roughed"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "form_flatwork": {
+    {
       "id": "form_flatwork",
       "name": "Form Flatwork",
       "description": "Build and set wooden or metal forms for flatwork areas such as the garage floor, driveway, and walkways, ensuring proper grade and alignment",
@@ -92,9 +92,9 @@
       "output": [
         "concrete_forms"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "pour_concrete": {
+    {
       "id": "pour_concrete",
       "name": "Pour Concrete",
       "description": "Pour concrete into the prepared forms and screed it level, working the surface to remove air pockets before it begins to set",
@@ -104,9 +104,9 @@
       "output": [
         "poured_concrete"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "cure_finish": {
+    {
       "id": "cure_finish",
       "name": "Cure and Finish",
       "description": "Allow the poured concrete to cure fully, then apply finishing work such as troweling, sealing, and edging to complete the flatwork",
@@ -116,9 +116,9 @@
       "output": [
         "finished_concrete"
       ],
-      "isComplete": true
+      "isComplete": false
     },
-    "mep_inspection": {
+    {
       "id": "mep_inspection",
       "name": "MEP Inspection",
       "description": "Conduct the mechanical, electrical, and plumbing inspection against code once all three independent trade branches have fully completed, this task cannot start until every branch reports its final output",
@@ -132,5 +132,5 @@
       ],
       "isComplete": false
     }
-  }
+  ]
 }

@@ -1,52 +1,76 @@
-# ⚡ Dependency Engine
+# Workflow Engine — POC v1.0.0
 
-A lightweight workflow state machine built with Flask + vanilla HTML/CSS/JS.
+A dependency-driven task workflow engine built as a **proof of concept**. Tasks define their own `input[]` and `output[]` arrays — the engine resolves dependencies by matching task `output` values to other tasks' `input` values.
+
+## Directory Layout
+
+```
+workflow-engine/
+└── v1.0.0/
+    ├── workflow.json   ← task data store (all tasks with input/output)
+    ├── engine.py        ← WorkflowStore class (core dependency graph logic)
+    ├── app.py           ← Flask REST API (all HTTP endpoints)
+    ├── index.html       ← browser dashboard (task list, status, add/remove)
+    └── run.py           ← bootstrap (starts server + opens browser)
+```
+
+**Note:** All files live in `workflow-engine/v1.0.0/`. Do NOT move files out of this subdirectory — `app.py` serves `index.html` from the same directory, and `engine.py` reads `workflow.json` from the same directory.
 
 ## Quick Start
 
 ```bash
-pip install flask
-python app.py
+cd workflow-engine/v1.0.0
+pip install flask flask-cors
+python run.py
 ```
 
-Then open **http://localhost:5000** in your browser.
+Opens Flask on port 5000 and launches the dashboard at `http://localhost:5000`.
 
-## Project Files
+## Task Object
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Frontend UI — loads from Flask API |
-| `styles.css` | Dark-theme styles |
-| `app.py` | Flask backend — serves API endpoints |
-| `workflow.json` | Task definitions with inputs, outputs & `isComplete` |
-
-## How It Works
-
-**Each task has:**
-- `inputs` — artifacts it needs from other tasks
-- `outputs` — artifacts it produces (used as inputs by downstream tasks)
-- `isComplete` — boolean flag set to `true` when the task is done
-
-**State logic:**
-- **Blocked** — one or more inputs not yet complete
-- **Ready** — all inputs complete, not yet done
-- **Done** — `isComplete === true`
-
-The engine walks the task graph and surfaces the first **Ready** task as "Current Task." Marking it complete unlocks the next ones downstream.
+```json
+{
+  "id": "make_coffee",
+  "name": "Make Coffee",
+  "description": "Brew a fresh pot",
+  "input": ["water", "coffee_beans"],
+  "output": ["hot_coffee"],
+  "isComplete": false
+}
+```
 
 ## API Endpoints
 
-| Method | Path | Returns |
-|--------|------|---------|
-| GET | `/api/workflow` | Full task list with computed state |
-| GET | `/api/workflow/summary` | `{total, complete, ready, blocked}` |
-| GET | `/api/current` | First ready task |
-| POST | `/api/complete/<id>` | Mark task done (checks blocking) |
-| POST | `/api/workflow/reset` | Reset all `isComplete` to `false` |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/tasks` | List all tasks |
+| GET | `/api/tasks/<id>` | Get one task |
+| POST | `/api/tasks` | Add a task |
+| PUT | `/api/tasks/<id>` | Update a task |
+| DELETE | `/api/tasks/<id>` | Remove a task |
+| POST | `/api/tasks/<id>/complete` | Mark complete |
+| POST | `/api/tasks/<id>/uncomplete` | Mark incomplete |
+| GET | `/api/tasks/<id>/dependencies` | List blocking tasks |
+| POST | `/api/reset` | Reset all to incomplete |
+| GET | `/api/validate` | Check for dangling inputs |
+| GET | `/api/summary` | Count ready/blocked/complete |
+| GET | `/api/toposort` | Kahn's algorithm execution order |
+| GET | `/api/current` | First ready-to-execute task |
 
-## Screenshots
+## Intentional Bug (preserved)
 
-- **Summary bar** — live counts at a glance
-- **Current Task** — highlighted ready task with inputs/outputs
-- **All Tasks** — cards showing Done / Ready / Blocked status per task
-- **Auto-refresh** — UI reloads every 5 seconds
+`crepe_make` has `input: ["crepe_batter"]` — **nothing produces `crepe_batter`**. The `validate()` endpoint catches this and shows it as a warning in the UI. Does NOT block any other functionality.
+
+## Status Colors
+
+- 🟢 **READY** — all inputs satisfied, not yet complete
+- 🔴 **BLOCKED** — waiting on upstream tasks
+- ⚫ **COMPLETE** — marked done
+
+## Future Improvements
+
+- Guard check on `complete()` — reject blocked tasks
+- `completed[]` top-level list in JSON
+- Atomic file writes / DB persistence
+- Rich UI styling / GUI editor for task editing
+- Separate data file from code (currently both in same dir)

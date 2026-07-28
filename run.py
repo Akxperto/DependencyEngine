@@ -1,8 +1,15 @@
-#!/usr/bin/env python3
-"""Run the task engine against workflow.json."""
-import sys
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
+"""Bootstrap — starts Flask and opens the dashboard in a browser."""
 
-from engine import run_workflow
+import webbrowser
+import threading
+import time
+from app import app
 
-run_workflow(tasks_path="workflow.json", dry_run=True)
+def open_browser():
+    time.sleep(1.0)
+    webbrowser.open('http://localhost:5000')
+
+if __name__ == '__main__':
+    threading.Thread(target=open_browser, daemon=True).start()
+    print("🚀 Starting Workflow Engine — open http://localhost:5000")
+    app.run(host='0.0.0.0', port=5000, debug=False)

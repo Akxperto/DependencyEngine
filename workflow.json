@@ -1,139 +1,135 @@
 {
   "tasks": [
     {
-      "id": "prepare_ingredients",
-      "name": "Prepare Ingredients",
-      "description": "Gather and prep all ingredients for the Beef Wellington",
+      "id": "framing",
+      "name": "Framing",
+      "description": "Erect the structural wood or steel frame of the building, including walls, floor joists, and roof trusses, up to a point where trades can begin rough-in work",
       "input": [],
-      "output": ["prepped_ingredients" ],
+      "output": [
+        "framed_structure"
+      ],
+      "isComplete": true
+    },
+    {
+      "id": "electrical_roughin",
+      "name": "Electrical Rough-in",
+      "description": "Run wiring through the framed walls and ceilings, install electrical boxes, and set up circuit runs before walls are closed up",
+      "input": [
+        "framed_structure"
+      ],
+      "output": [
+        "electrical_rough"
+      ],
       "isComplete": false
     },
     {
-      "id": "make_duxelles",
-      "name": "Make Duxelles",
-      "description": "Finely chop mushrooms and shallots, cook down to remove moisture",
-      "input": ["prepped_ingredients"],
-      "output": ["duxelles"],
+      "id": "panel_install",
+      "name": "Panel Install",
+      "description": "Mount and wire the main electrical breaker panel, connecting it to the rough-in circuits run throughout the structure",
+      "input": [
+        "electrical_rough"
+      ],
+      "output": [
+        "electrical_panel"
+      ],
       "isComplete": false
     },
     {
-      "id": "sear_beef",
-      "name": "Sear Beef",
-      "description": "Season and sear the beef tenderloin on all sides for a golden crust",
-      "input": ["prepped_ingredients"],
-      "output": ["seared_beef"],
+      "id": "electrical_test",
+      "name": "Electrical Test",
+      "description": "Test all wiring circuits and the breaker panel for continuity, correct voltage, and code compliance before the branch is considered complete",
+      "input": [
+        "electrical_panel"
+      ],
+      "output": [
+        "electrical_tested"
+      ],
       "isComplete": false
     },
     {
-      "id": "smear_dijon",
-      "name": "Smear Dijon Mustard",
-      "description": "Coat the seared beef evenly with Dijon mustard",
-      "input": ["seared_beef"],
-      "output": ["mustard_beef"],
+      "id": "plumbing_roughin",
+      "name": "Plumbing Rough-in",
+      "description": "Install supply lines and drain, waste, and vent piping through the framed structure before walls and floors are closed",
+      "input": [
+        "framed_structure"
+      ],
+      "output": [
+        "plumbing_rough"
+      ],
       "isComplete": false
     },
     {
-      "id": "wrap_prosciutto",
-      "name": "Wrap with Prosciutto",
-      "description": "Layer prosciutto slices over the beef to create a sealing layer",
-      "input": ["mustard_beef"],
-      "output": ["prosciutto_beef"],
+      "id": "pressure_test",
+      "name": "Pressure Test",
+      "description": "Pressurize the newly installed supply and drain lines to check for leaks and verify the plumbing system holds pressure to spec",
+      "input": [
+        "plumbing_rough"
+      ],
+      "output": [
+        "plumbing_pressure_tested"
+      ],
       "isComplete": false
     },
     {
-      "id": "roll_dough",
-      "name": "Roll Out Puff Pastry",
-      "description": "Roll out the puff pastry dough to a flat sheet large enough to encase the beef",
-      "input": [],
-      "output": ["pastry_sheet"],
+      "id": "fixture_roughin",
+      "name": "Fixture Rough-in",
+      "description": "Install the rough-in components for sinks, tubs, toilets, and other fixtures so finish plumbing can be connected later",
+      "input": [
+        "plumbing_pressure_tested"
+      ],
+      "output": [
+        "plumbing_fixtures_roughed"
+      ],
       "isComplete": false
     },
     {
-      "id": "make_crepe",
-      "name": "Make Crepes",
-      "description": "Mix batter and cook thin crepes to act as a moisture barrier",
-      "input": [],
-      "output": ["crepes"],
+      "id": "form_flatwork",
+      "name": "Form Flatwork",
+      "description": "Build and set wooden or metal forms for flatwork areas such as the garage floor, driveway, and walkways, ensuring proper grade and alignment",
+      "input": [
+        "framed_structure"
+      ],
+      "output": [
+        "concrete_forms"
+      ],
       "isComplete": false
     },
     {
-      "id": "crepe_make",
-      "name": "Assemble Crepe Layers",
-      "description": "Layer crepes around the beef for extra protection",
-      "input": ["crepe_batter"],
-      "output": ["crepe_layers"],
+      "id": "pour_concrete",
+      "name": "Pour Concrete",
+      "description": "Pour concrete into the prepared forms and screed it level, working the surface to remove air pockets before it begins to set",
+      "input": [
+        "concrete_forms"
+      ],
+      "output": [
+        "poured_concrete"
+      ],
       "isComplete": false
     },
     {
-      "id": "wrap_crepes",
-      "name": "Wrap with Crepes",
-      "description": "Wrap the beef in crepe layers",
-      "input": ["prosciutto_beef", "crepes"],
-      "output": ["crepe_wrapped_beef"],
+      "id": "cure_finish",
+      "name": "Cure and Finish",
+      "description": "Allow the poured concrete to cure fully, then apply finishing work such as troweling, sealing, and edging to complete the flatwork",
+      "input": [
+        "poured_concrete"
+      ],
+      "output": [
+        "finished_concrete"
+      ],
       "isComplete": false
     },
     {
-      "id": "wrap_pastry",
-      "name": "Wrap in Puff Pastry",
-      "description": "Encase the crepe-wrapped beef in puff pastry, seal edges",
-      "input": ["crepe_wrapped_beef", "pastry_sheet"],
-      "output": ["raw_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "glaze_egg",
-      "name": "Glaze with Egg Wash",
-      "description": "Brush the pastry with egg wash for a golden finish",
-      "input": ["raw_wellington"],
-      "output": ["egg_washed_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "score_pastry",
-      "name": "Score Pastry",
-      "description": "Cut decorative lines into the pastry before baking",
-      "input": ["egg_washed_wellington"],
-      "output": ["scored_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "bake_wellington",
-      "name": "Bake Wellington",
-      "description": "Bake in a hot oven until pastry is golden and beef is cooked to desired temp",
-      "input": ["scored_wellington"],
-      "output": ["baked_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "rest_wellington",
-      "name": "Rest Wellington",
-      "description": "Let the baked Wellington rest before slicing",
-      "input": ["baked_wellington"],
-      "output": ["rested_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "slice_wellington",
-      "name": "Slice Wellington",
-      "description": "Cut into uniform slices to serve",
-      "input": ["rested_wellington"],
-      "output": ["sliced_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "plate_wellington",
-      "name": "Plate Wellington",
-      "description": "Arrange slices on a platter with garnishes",
-      "input": ["sliced_wellington"],
-      "output": ["plated_wellington"],
-      "isComplete": false
-    },
-    {
-      "id": "prepare_sides",
-      "name": "Prepare Sides",
-      "description": "Cook and season any side dishes to accompany the Wellington",
-      "input": ["prepped_ingredients"],
-      "output": ["sides"],
+      "id": "mep_inspection",
+      "name": "MEP Inspection",
+      "description": "Conduct the mechanical, electrical, and plumbing inspection against code once all three independent trade branches have fully completed, this task cannot start until every branch reports its final output",
+      "input": [
+        "electrical_tested",
+        "plumbing_fixtures_roughed",
+        "finished_concrete"
+      ],
+      "output": [
+        "mep_approved"
+      ],
       "isComplete": false
     }
   ]

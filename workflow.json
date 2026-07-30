@@ -20,7 +20,7 @@
       "output": [
         "electrical_rough"
       ],
-      "isComplete": false
+      "isComplete": true
     },
     {
       "id": "panel_install",

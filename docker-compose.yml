@@ -1,0 +1,20 @@
+services:
+  dependencyEngine:
+    container_name: dependencyEngine
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"   # Flask API — web dashboard
+      - "8765:8765"   # MCP server — HTTP endpoint for Odysseus
+    environment:
+      - MCP_PORT=8765
+    volumes:
+      - ./workflow.json:/app/workflow.json
+    restart: unless-stopped
+    networks:
+      - odysseus_net
+
+networks:
+  odysseus_net:
+    external: true

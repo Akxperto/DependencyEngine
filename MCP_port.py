@@ -379,9 +379,14 @@ def get_blockers(task_id: str) -> dict:
 
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "stdio").lower()
-    if transport == "sse":
+    if transport == "streamable-http":
+        port = int(os.environ.get("MCP_PORT", "5001"))
+        host = os.environ.get("MCP_HOST", "0.0.0.0")
+        print(f"[dependency-engine MCP] Streamable HTTP on http://{host}:{port}/mcp", flush=True)
+        mcp.run(transport="streamable-http", mount_path="/mcp")
+    elif transport == "sse":
         port = int(os.environ.get("MCP_PORT", "5001"))
         print(f"[dependency-engine MCP] SSE transport on port {port}", flush=True)
-        mcp.run(transport="sse")
+        mcp.run(transport="sse", host="0.0.0.0", port=5001)
     else:
-        mcp.run()   # stdio — Odysseus spawns and pipes to this process
+        mcp.run() 

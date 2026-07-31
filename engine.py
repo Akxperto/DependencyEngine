@@ -192,6 +192,35 @@ class WorkflowStore:
                     return task_id
         return None
 
+    def get_ready_tasks(self) -> list[dict]:
+        """Return all tasks that are not complete and have all deps satisfied."""
+        result = []
+        for task_id, task in self.tasks.items():
+            if task.get('isComplete', False):
+                continue
+            ok, _ = self.can_complete(task_id)
+            if ok:
+                result.append(self.annotate_task(task_id))
+        return result
+
+    def get_blocked_tasks(self) -> list[dict]:
+        """Return all incomplete tasks where at least one dep is unmet."""
+        result = []
+        for task_id, task in self.tasks.items():
+            if task.get('isComplete', False):
+                continue
+            ok, _ = self.can_complete(task_id)
+            if not ok:
+                result.append(self.annotate_task(task_id))
+        return result
+
+    def get_blockers(self, task_id: str) -> list[str]:
+        """Return list of upstream task IDs currently blocking this task."""
+        if task_id not in self.tasks:
+            return []
+        _, unmet = self.can_complete(task_id)
+        return unmet
+
     def complete(self, task_id: str) -> None:
         """Mark task as complete (no guard)."""
         if task_id in self.tasks:

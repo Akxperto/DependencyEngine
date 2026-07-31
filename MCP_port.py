@@ -54,6 +54,7 @@ FLASK_BASE = os.environ.get("WORKFLOW_API_URL", "http://localhost:5000/api").rst
 mcp = FastMCP(
     "dependency-engine",
     log_level="WARNING",
+    host=os.environ.get("MCP_HOST", "0.0.0.0"),   # must be 0.0.0.0 in Docker; default was 127.0.0.1
     port=int(os.environ.get("MCP_PORT", "5001")),
 )
 
@@ -345,6 +346,33 @@ def update_task(
 def remove_task(task_id: str) -> dict:
     result, _ = _delete(f"/tasks/{task_id}")
     return result
+
+
+@mcp.tool(description=(
+    "Return all tasks that are ready to work on: not yet complete and "
+    "every upstream dependency is already satisfied. "
+    "Use this to find parallelisable work at the current frontier."
+))
+def get_ready_tasks() -> dict:
+    return _get("/tasks/ready")
+
+
+@mcp.tool(description=(
+    "Return all incomplete tasks that are currently blocked: "
+    "at least one upstream dependency has not been completed yet. "
+    "Useful for understanding what is holding up the workflow."
+))
+def get_blocked_tasks() -> dict:
+    return _get("/tasks/blocked")
+
+
+@mcp.tool(description=(
+    "Return the list of task IDs that are directly blocking a given task "
+    "(i.e. incomplete upstream dependencies). "
+    "Returns an empty list if the task is ready or does not exist."
+))
+def get_blockers(task_id: str) -> dict:
+    return _get(f"/tasks/{task_id}/blockers")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

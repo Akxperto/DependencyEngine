@@ -1,5 +1,6 @@
 """Flask REST API — exposes WorkflowStore via HTTP endpoints."""
 
+import re
 import logging
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -7,6 +8,15 @@ from engine import WorkflowStore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _to_snake_case(name: str) -> str:
+    """Convert 'Electrical Load Test' -> 'electrical_load_test'."""
+    s = re.sub(r'[^\w\s]', '', name)
+    s = re.sub(r'([a-z])([A-Z])', r'\1_\2', s)
+    s = re.sub(r'\s+', '_', s)
+    return s.lower().strip('_')
+
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
@@ -33,13 +43,21 @@ def get_task(task_id):
 @app.route('/api/tasks', methods=['POST'])
 def add_task():
     body = request.json
-    required = ['id', 'name', 'description', 'input', 'output']
+    if not body:
+        return jsonify({'error': 'Request body is required'}), 400
+    required = ['name', 'description', 'input', 'output']
     if not all(k in body for k in required):
         return jsonify({'error': f'Missing fields. Required: {required}'}), 400
-    if store.get_task(body['id']):
-        return jsonify({'error': f'Task {body["id"]} already exists'}), 409
+    if 'id' in body:
+        task_id = body['id']
+    else:
+        task_id = _to_snake_case(body.get('name', ''))
+    if not task_id:
+        return jsonify({'error': 'Could not derive a valid task id — provide "id" or a non-empty "name"'}), 400
+    if store.get_task(task_id):
+        return jsonify({'error': f'Task {task_id} already exists'}), 409
     task = store.add_task(
-        body['id'], body['name'], body['description'],
+        task_id, body['name'], body['description'],
         body['input'], body['output']
     )
     return jsonify(task), 201
@@ -47,6 +65,8 @@ def add_task():
 @app.route('/api/tasks/<task_id>', methods=['PUT'])
 def update_task(task_id):
     body = request.json
+    if not body:
+        return jsonify({'error': 'Request body is required'}), 400
     task = store.update_task(
         task_id, body.get('name', ''), body.get('description', ''),
         body.get('input', []), body.get('output', [])
@@ -115,6 +135,22 @@ def current():
     cid = store.current_task()
     task = store.annotate_task(cid) if cid else None
     return jsonify({'current': cid, 'task': task})
+
+@app.route('/api/tasks/ready', methods=['GET'])
+def get_ready_tasks():
+    tasks = store.get_ready_tasks()
+    return jsonify({'tasks': tasks})
+
+@app.route('/api/tasks/blocked', methods=['GET'])
+def get_blocked_tasks():
+    tasks = store.get_blocked_tasks()
+    return jsonify({'tasks': tasks})
+
+@app.route('/api/tasks/<task_id>/blockers', methods=['GET'])
+def get_blockers(task_id):
+    if not store.get_task(task_id):
+        return jsonify({'error': f'Task {task_id} not found'}), 404
+    return jsonify({'blockers': store.get_blockers(task_id)})
 
 if __name__ == '__main__':
     logger.info("Starting Workflow Engine API on http://localhost:5000")

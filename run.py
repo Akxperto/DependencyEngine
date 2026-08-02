@@ -25,7 +25,7 @@ MCP_PORT = int(os.environ.get("MCP_PORT", "5001"))
 def start_mcp_server() -> subprocess.Popen:
     """Spawn MCP_port.py as an SSE subprocess."""
     env = os.environ.copy()
-    env["MCP_TRANSPORT"] = "sse"
+    env.setdefault("MCP_TRANSPORT", "streamable-http")
     env["MCP_PORT"] = str(MCP_PORT)
     # Point MCP at Flask — both run on localhost in the same container.
     env.setdefault("WORKFLOW_API_URL", "http://localhost:5000/api")
@@ -56,8 +56,12 @@ if __name__ == "__main__":
 
     threading.Thread(target=open_browser, daemon=True).start()
 
+    transport = os.environ.get("MCP_TRANSPORT", "streamable-http")
+    mcp_path = "/mcp" if transport == "streamable-http" else "/sse"
+    
     print(f"🚀 Flask dashboard  → http://localhost:5000")
-    print(f"🔌 MCP SSE server   → http://localhost:{MCP_PORT}/sse")
+    print(f"🔌 MCP {transport} server → http://localhost:{MCP_PORT}{mcp_path}")
+
 
     try:
         app.run(host="0.0.0.0", port=5000, debug=False)

@@ -9,7 +9,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN uv pip install --system --no-cache -r requirements.txt
+RUN uv pip install --upgrade --system --no-cache -r requirements.txt
 
 # Copy application files
 COPY engine.py .

@@ -9,7 +9,6 @@ from engine import WorkflowStore
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 def _to_snake_case(name: str) -> str:
     """Convert 'Electrical Load Test' -> 'electrical_load_test'."""
     s = re.sub(r'[^\w\s]', '', name)
@@ -17,12 +16,11 @@ def _to_snake_case(name: str) -> str:
     s = re.sub(r'\s+', '_', s)
     return s.lower().strip('_')
 
-
 app = Flask(__name__, static_folder='.')
 CORS(app)
 store = WorkflowStore('workflow.json')
 
-# ─── API Routes ────────────────────────────────────────────────────────────────
+# ─── API Routes ─────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
@@ -32,6 +30,21 @@ def index():
 def get_tasks():
     tasks = [store.annotate_task(tid) for tid in store.tasks]
     return jsonify({'tasks': tasks})
+
+# ── Specific task collection routes MUST come before /api/tasks/<task_id> ──
+# Otherwise Flask matches /api/tasks/ready and /api/tasks/blocked as task IDs.
+
+@app.route('/api/tasks/ready', methods=['GET'])
+def get_ready_tasks():
+    tasks = store.get_ready_tasks()
+    return jsonify({'tasks': tasks})
+
+@app.route('/api/tasks/blocked', methods=['GET'])
+def get_blocked_tasks():
+    tasks = store.get_blocked_tasks()
+    return jsonify({'tasks': tasks})
+
+# ── /api/tasks/<task_id> catch-all ─────────────────────────────────────────
 
 @app.route('/api/tasks/<task_id>', methods=['GET'])
 def get_task(task_id):
@@ -110,6 +123,12 @@ def get_dependencies(task_id):
         return jsonify({'error': f'Task {task_id} not found'}), 404
     return jsonify({'dependencies': store.get_task_dependencies(task_id)})
 
+@app.route('/api/tasks/<task_id>/blockers', methods=['GET'])
+def get_blockers(task_id):
+    if not store.get_task(task_id):
+        return jsonify({'error': f'Task {task_id} not found'}), 404
+    return jsonify({'blockers': store.get_blockers(task_id)})
+
 @app.route('/api/reset', methods=['POST'])
 def reset_all():
     store.reset()
@@ -135,22 +154,6 @@ def current():
     cid = store.current_task()
     task = store.annotate_task(cid) if cid else None
     return jsonify({'current': cid, 'task': task})
-
-@app.route('/api/tasks/ready', methods=['GET'])
-def get_ready_tasks():
-    tasks = store.get_ready_tasks()
-    return jsonify({'tasks': tasks})
-
-@app.route('/api/tasks/blocked', methods=['GET'])
-def get_blocked_tasks():
-    tasks = store.get_blocked_tasks()
-    return jsonify({'tasks': tasks})
-
-@app.route('/api/tasks/<task_id>/blockers', methods=['GET'])
-def get_blockers(task_id):
-    if not store.get_task(task_id):
-        return jsonify({'error': f'Task {task_id} not found'}), 404
-    return jsonify({'blockers': store.get_blockers(task_id)})
 
 if __name__ == '__main__':
     logger.info("Starting Workflow Engine API on http://localhost:5000")

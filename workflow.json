@@ -8,7 +8,7 @@
       "output": [
         "framed_structure"
       ],
-      "isComplete": true
+      "isComplete": false
     },
     {
       "id": "electrical_roughin",

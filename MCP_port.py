@@ -1,6 +1,6 @@
 """
 MCP server for the Dependency Engine — Odysseus edition.
-mcp SDK v1.x (FastMCP).
+mcp SDK v1.x (MCPServer).
 
 Architecture
 ------------
@@ -40,7 +40,7 @@ import json
 import os
 import urllib.request
 import urllib.error
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -51,15 +51,8 @@ MCP_PORT   = int(os.environ.get("MCP_PORT", "5001"))
 # Disable DNS rebinding protection — the server is behind Caddy which
 # rewrites the Host header to the container's internal address. Without
 # this, every request gets HTTP 421 Misdirected Request.
-mcp = FastMCP(
-    "dependency-engine",
-    host=MCP_HOST,
-    port=MCP_PORT,
-    log_level="WARNING",
-    transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=False,
-    ),
-)
+mcp = MCPServer(name="dependencyengine")
+
 
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
@@ -316,13 +309,5 @@ def get_blockers(task_id: str) -> dict:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    transport = os.environ.get("MCP_TRANSPORT", "streamable-http").lower()
-
-    if transport == "stdio":
-        mcp.run()  # stdio
-    elif transport == "sse":
-        print(f"[dependency-engine MCP] SSE on {MCP_HOST}:{MCP_PORT}/sse", flush=True)
-        mcp.run(transport="sse")
-    else:  # streamable-http (default for Odysseus)
-        print(f"[dependency-engine MCP] streamable-http on {MCP_HOST}:{MCP_PORT}/mcp", flush=True)
-        mcp.run(transport="streamable-http")
+    print(f"[dependencyengine MCP] streamable-http on {MCP_HOST}:{MCP_PORT}/mcp")
+    mcp.run(transport='streamable-http', host="0.0.0.0", port=5001)

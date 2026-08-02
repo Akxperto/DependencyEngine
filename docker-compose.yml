@@ -1,6 +1,6 @@
 services:
-  dependencyEngine:
-    container_name: dependencyEngine
+  dependencyengine:
+    container_name: dependencyengine
     build:
       context: .
       dockerfile: Dockerfile
@@ -14,9 +14,4 @@ services:
     volumes:
       - ./workflow.json:/app/workflow.json
     restart: unless-stopped
-    networks:
-      - odysseus_net
-
-networks:
-  odysseus_net:
-    external: true
+  
